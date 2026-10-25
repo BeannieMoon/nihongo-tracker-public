@@ -1,0 +1,18 @@
+# Secrets: API keys and the diary web-app token never go into git.
+*.key
+diary.json
+
+# Raw personal exports (large, and only useful on this PC)
+imports/youtube/
+imports/chimahon/*.tachibk
+
+# Generated: rebuilt by the tools from the data that is committed
+apps_script/preview.html
+apps_script/demo.html
+apps_script/preview_covers/
+out/
+demo/
+catalogue/diary_backup_*.json
+youtube_cache.json
+__pycache__/
+*.pyc

@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio Diary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #ECE4D6; --paper-dim: #E1D7C4; --ink: #2B2530; --ink-soft: #5C5460; --wine: #7C3048; --wine-dim: #9B5468;
+  --gold: #B08D57; --sage: #6B7A5E; --line: #C9BEAE; --card: #F6F1E7; --shadow: 0 2px 10px rgba(43,37,48,.12);
+  --r18: #9B3A55; --aa: #4F6B57;
+  --display: "Fraunces", ui-serif, Georgia, serif; --body: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+[data-theme="darkpink"] { --paper:#191419; --paper-dim:#241A24; --ink:#F3E6EF; --ink-soft:#B79CB0; --wine:#F49AC1; --wine-dim:#D072A0;
+  --gold:#E8B7D4; --sage:#9FB0C9; --line:#3A2C39; --card:#221A22; --shadow:0 2px 16px rgba(0,0,0,.45); --r18:#F49AC1; --aa:#9FD0B4; }
+[data-theme="paper"] { --paper:#F7F4EC; --paper-dim:#ECE7D9; --ink:#3B3730; --ink-soft:#6E685C; --wine:#8A5A44; --wine-dim:#A9765E;
+  --gold:#B79A63; --sage:#7C8467; --line:#DAD2C0; --card:#FFFDF7; --shadow:0 1px 6px rgba(59,55,48,.10); }
+[data-theme="dark"] { --paper:#1C1B22; --paper-dim:#26242E; --ink:#E8E4EC; --ink-soft:#A39EAC; --wine:#C77D93; --wine-dim:#A86176;
+  --gold:#C9A96A; --sage:#8FA07E; --line:#3A3742; --card:#24222B; --shadow:0 2px 14px rgba(0,0,0,.4); --r18:#E58FA7; --aa:#9DC4A8; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 var(--body); }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--wine); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+
+/* top bar */
+.top { position: sticky; top: 0; z-index: 5; background: var(--paper); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 12px; padding-top: 10px; padding-bottom: 10px; flex-wrap: wrap; }
+.brand { font: 600 24px/1 var(--display); color: var(--wine); letter-spacing: .01em; margin-right: auto; }
+.brand small { font: 400 12px var(--mono); color: var(--ink-soft); margin-left: 8px; letter-spacing: .05em; }
+nav.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+nav.tabs button { border: 0; background: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; font: 500 13px var(--mono);
+  letter-spacing: .04em; color: var(--ink-soft); text-transform: uppercase; }
+nav.tabs button.on { background: var(--wine); color: var(--card); }
+nav.tabs .badge { background: var(--gold); color: var(--card); border-radius: 999px; padding: 0 6px; margin-left: 4px; font-size: 11px; }
+.saving { font: 12px var(--mono); color: var(--ink-soft); min-width: 70px; text-align: right; }
+
+/* stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 18px 0 8px; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow); }
+.stat b { display: block; font: 600 22px var(--display); }
+.stat span { font: 12px var(--mono); color: var(--ink-soft); }
+
+/* filters */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.filters input[type=search] { flex: 1 1 240px; min-width: 0; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); }
+.filters select { padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); }
+.filters select.set { border-color: var(--wine); color: var(--wine); font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: none; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+.seg button.on { background: var(--wine); color: var(--card); }
+.chiprow { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
+  border-radius: 999px; padding: 2px 10px; font-size: 13px; cursor: default; white-space: nowrap; }
+button.chip { cursor: pointer; }
+.chip.on { background: var(--wine); border-color: var(--wine); color: var(--card); }
+.chip.r18 { color: var(--r18); border-color: var(--r18); }
+.chip.aa { color: var(--aa); border-color: var(--aa); }
+.chip.tok { color: var(--gold); border-color: var(--gold); }
+.count { font: 12px var(--mono); color: var(--ink-soft); }
+
+/* library cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.scard { display: flex; gap: 12px; padding: 12px; cursor: pointer; text-align: left; width: 100%; border: 0; background: none; }
+.scard:hover { background: var(--paper-dim); }
+.cover { width: 64px; height: 64px; border-radius: 10px; flex: none; background: var(--paper-dim) center/cover no-repeat;
+  display: grid; place-items: center; font: 600 26px var(--display); color: var(--wine); border: 1px solid var(--line); }
+.cover.big { width: 140px; height: 140px; font-size: 54px; border-radius: 14px; }
+.stitle { font: 600 16px/1.25 var(--display); overflow-wrap: anywhere; }
+.ssub { font-size: 13px; color: var(--ink-soft); overflow-wrap: anywhere; }
+.bar { height: 6px; border-radius: 99px; background: var(--paper-dim); overflow: hidden; margin-top: 6px; }
+.bar i { display: block; height: 100%; background: var(--sage); }
+.franchise-head { font: 600 20px var(--display); margin: 22px 0 8px; color: var(--wine); }
+.star { color: var(--gold); }
+
+/* detail */
+.back { border: 0; background: none; color: var(--ink-soft); cursor: pointer; padding: 14px 0 4px; font: 13px var(--mono); }
+.hero { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; margin: 8px 0 16px; }
+.hero h1 { font: 600 30px/1.15 var(--display); margin: 0; overflow-wrap: anywhere; }
+.hero .en { color: var(--ink-soft); margin-top: 2px; }
+.hero .grow { flex: 1 1 320px; min-width: 0; }
+.starbtn { border: 0; background: none; font-size: 26px; cursor: pointer; color: var(--line); line-height: 1; }
+.starbtn.on { color: var(--gold); }
+.form { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; }
+.field label { display: block; font: 11px var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 2px; }
+.field input, .field select, .field textarea { width: 100%; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--card); }
+.field textarea { min-height: 80px; resize: vertical; }
+.wide { grid-column: 1 / -1; }
+section.box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin: 14px 0; box-shadow: var(--shadow); }
+section.box h2 { font: 600 19px var(--display); margin: 0 0 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+section.box h2 .count { font-weight: 400; }
+.vol { border-top: 1px solid var(--line); padding: 8px 0; }
+.vol:first-of-type { border-top: 0; }
+.vrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.vrow input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--wine); }
+.vtitle { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.vtitle b { font-weight: 600; }
+.vtitle .li { color: var(--wine); }
+.vtitle .cv { color: var(--ink-soft); font-size: 14px; }
+.mono { font: 13px var(--mono); color: var(--ink-soft); white-space: nowrap; }
+.vedit { margin: 8px 0 4px 30px; }
+.vedit[hidden] { display: none; }
+.editbtn { border: 0; background: none; cursor: pointer; font-size: 18px; line-height: 1; color: var(--ink-soft); padding: 2px 4px; border-radius: 6px; }
+.editbtn.on, .editbtn:hover { color: var(--wine); background: var(--paper-dim); }
+.btn { border: 1px solid var(--wine); background: none; color: var(--wine); border-radius: 9px; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+.btn.fill { background: var(--wine); color: var(--card); }
+.btn.ghost { border-color: var(--line); color: var(--ink-soft); }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.note { background: var(--paper-dim); border-radius: 10px; padding: 10px 12px; font-size: 14px; color: var(--ink-soft); margin: 10px 0; }
+.empty { text-align: center; color: var(--ink-soft); padding: 40px 0; font-family: var(--display); font-style: italic; }
+.va { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--line); }
+.va b { font: 600 17px var(--display); min-width: 180px; }
+.list { padding: 4px 0; }
+.lrow { display: grid; grid-template-columns: 18px minmax(0, 3fr) repeat(7, minmax(0, 1fr)); gap: 10px; align-items: center; width: 100%;
+  padding: 7px 12px; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; cursor: pointer; font-size: 14px; }
+.lrow:hover { background: var(--paper-dim); }
+.lrow.lhead { cursor: default; border-top: 0; font: 11px var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); }
+.lrow.lhead:hover { background: none; }
+.ltitle { min-width: 0; overflow-wrap: anywhere; }
+.ltitle .ssub { display: block; }
+.lcell { color: var(--ink-soft); overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .lrow { grid-template-columns: 18px minmax(0, 1fr) auto auto; }
+  .lrow .lcell:nth-of-type(3), .lrow .lcell:nth-of-type(4), .lrow .lcell:nth-of-type(5), .lrow .lcell:nth-of-type(6), .lrow .lcell:nth-of-type(8) { display: none; }
+}
+.tracks { margin: 8px 0 0; }
+.cdthumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); flex: none; }
+details.synopsis { margin: 2px 0 8px; } details.synopsis p { margin: 6px 0 0; font-size: 14px; color: var(--ink-soft); max-width: 70ch; }
+.trow { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-top: 1px dashed var(--line); flex-wrap: wrap; }
+.trow .ttitle { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+.trow .cv { color: var(--ink-soft); font-size: 13px; }
+.trow select { font-size: 12px; padding: 2px 6px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); }
+.cover { position: relative; }
+.cstar { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; display: grid; place-items: center;
+  font-size: 13px; line-height: 1; background: rgba(255,255,255,.78); color: var(--line); cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+.cstar.on { color: var(--gold); }
+span.cstar { cursor: default; }
+.cover.big .cstar { width: 30px; height: 30px; font-size: 18px; top: 6px; right: 6px; }
+.cover.thumb { width: 44px; height: 44px; font-size: 18px; border-radius: 8px; }
+.cover.thumb .cstar { width: 17px; height: 17px; font-size: 10px; top: -5px; right: -5px; }
+.cover.thumb .cstar:not(.on) { opacity: 0; } .vrow:hover .cover.thumb .cstar { opacity: 1; }
+.dot { color: var(--line); margin: 0 6px; }
+.meta { color: var(--ink-soft); font-size: 14px; margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; }
+.titlebar { display: flex; gap: 10px; align-items: flex-start; } .titlebar h1 { flex: 1; }
+.ilinks { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.ilink { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-soft); text-decoration: none; font-size: 14px; }
+.ilink:hover { color: var(--wine); }
+.ico { flex: none; }
+.jumps { display: flex; gap: 14px; flex-wrap: wrap; }
+.lrow.cdrow { grid-template-columns: 22px 44px minmax(0, 1fr) 96px 64px 52px; cursor: default; }
+.lrow.cdrow:hover { background: none; }
+.linkish { border: 0; background: none; text-align: left; padding: 0; cursor: pointer; color: inherit; font: inherit; }
+.linkish:hover b { color: var(--wine); }
+.sect .ilink { font-size: 13px; font-family: var(--body); font-weight: 400; }
+@media (max-width: 600px) { .lrow.cdrow { grid-template-columns: 22px 44px minmax(0, 1fr) 52px; } .lrow.cdrow .lcell:nth-of-type(1), .lrow.cdrow .lcell:nth-of-type(3) { display: none; } }
+.hbtns { margin-left: auto; display: inline-flex; gap: 6px; }
+.ibtn { width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--line); background: var(--card); color: var(--wine); cursor: pointer;
+  font: 600 15px var(--body); letter-spacing: -.12em; display: grid; place-items: center; padding: 0; }
+.ibtn:hover:not(:disabled) { border-color: var(--wine); } .ibtn:disabled { opacity: .35; cursor: default; }
+.tlink { border: 0; background: none; padding: 0; color: var(--wine); cursor: pointer; font: inherit; font-size: 14px; text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
+.tlink.danger { color: var(--ink-soft); } .tlink.danger:hover { color: #b3261e; }
+details > summary.tlink { list-style: none; display: inline; } details > summary.tlink::-webkit-details-marker { display: none; }
+.quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px 14px; }
+.quick.notes { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 10px; }
+.quick .field.wide { grid-column: auto; } .vedit .quick .field.wide { grid-column: 1 / -1; }
+.quick textarea { min-height: 70px; }
+details.more { margin-top: 10px; } details.more .quick { margin-top: 8px; }
+.vol { border-top: 1px solid var(--line); padding: 8px 0; }
+.vrow .vtitle { display: flex; flex-direction: column; } .vrow .vtitle .cv { font-size: 13px; }
+.vrow .vrate { min-width: 38px; text-align: right; }
+.vedit { margin: 10px 0 6px 30px; padding: 12px; background: var(--paper-dim); border-radius: 12px; }
+.sect { font: 600 19px var(--display); margin: 22px 0 10px; }
+.notice { display: block; width: 100%; text-align: left; border: 1px solid var(--gold); background: var(--card); color: var(--ink); border-radius: 12px; padding: 10px 14px; margin-top: 12px; cursor: pointer; }
+.nowcard { display: flex; flex-direction: column; } .nowcard .tlink { margin: 0 12px 12px; text-align: left; }
+.lrow.recent { grid-template-columns: 100px minmax(0, 1fr) 70px 60px; }
+label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; color: var(--ink-soft); cursor: pointer; }
+.catalogue h3.sub { font: 600 16px var(--display); margin: 18px 0 6px; }
+.catrow { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px 10px; padding: 10px 0; border-top: 1px dashed var(--line); align-items: end; }
+label.mini { display: flex; flex-direction: column; font: 10px var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); }
+label.mini input { font: 13px var(--body); padding: 4px 7px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--ink); text-transform: none; }
+.actions { display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; margin-top: 12px; }
+details.inline[open] { flex-basis: 100%; }
+@media (max-width: 600px) { .vrow .vmeta { display: none; } .vedit { margin-left: 0; } .lrow.recent { grid-template-columns: 84px minmax(0, 1fr) 56px; } .lrow.recent .lcell:last-child { display: none; } }
+pre.payload { white-space: pre-wrap; font: 12px var(--mono); background: var(--paper-dim); padding: 8px; border-radius: 8px; max-height: 160px; overflow: auto; margin: 6px 0 0; }
+.toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper);
+  padding: 8px 14px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: .95; }
+@media (max-width: 600px) { .brand small { display: none; } .hero h1 { font-size: 24px; } .cover.big { width: 96px; height: 96px; font-size: 40px; } }
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <div class="brand">Audio Diary<small>drama cd · tokuten · audiobook</small></div>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="saving" id="saving"></div>
+</div></div>
+<div class="wrap" id="app"><div class="empty">Loading your diary…</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- backend: Apps Script when deployed, browser storage when previewed locally ----------
+const LOCAL = !(window.google && google.script && google.script.run);
+// Browser storage can be unavailable (private windows, embedded previews); everything must work without it.
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+const Mock = (() => {
+  const KEY = 'audio-diary-preview-' + (window.PREVIEW_VERSION || '0');
+  let db; try { db = JSON.parse(store.get(KEY)); } catch (e) {}
+  db = db || window.PREVIEW_DATA || { franchises: [], groups: [], series: [], volumes: [], dumper: [], settings: {} };
+  db.groups = db.groups || [];
+  db.tracks = db.tracks || [];
+  const tabKey = { Series: 'series', Volumes: 'volumes', Franchises: 'franchises', Dumper: 'dumper', Tracks: 'tracks', Groups: 'groups' };
+  // One write per action, not per row: accepting a big hub touches hundreds of rows.
+  const write = () => { clearTimeout(write.t); write.t = null; store.set(KEY, JSON.stringify(db)); };
+  const persist = () => { if (!write.t) write.t = setTimeout(write, 0); };
+  addEventListener('pagehide', () => { if (write.t) write(); });
+  const up = (tab, row) => { const list = db[tabKey[tab]]; row = Object.assign({}, row);
+    if (!row.id) row.id = tab[0].toLowerCase() + '_' + Math.random().toString(16).slice(2, 10);
+    const cur = list.find(r => r.id === row.id); if (cur) Object.assign(cur, row); else list.push(row); persist(); return cur || row; };
+  return {
+    getAll: () => { const d = JSON.parse(JSON.stringify(db)); d.dumper = d.dumper.filter(x => x.status === 'pending'); return d; },
+    save: (tab, row) => up(tab, row),
+    saveMany: (tab, rows) => rows.map(r => up(tab, r)),
+    remove: (tab, id) => { db[tabKey[tab]] = db[tabKey[tab]].filter(r => r.id !== id);
+      if (tab === 'Series') db.volumes = db.volumes.filter(v => v.series_id !== id); persist(); return true; },
+    acceptDump: id => { const d = db.dumper.find(x => x.id === id); const p = JSON.parse(d.payload_json);
+      if (p.series) { const s = up('Series', p.series); (p.volumes || []).forEach(v => up('Volumes', Object.assign({ series_id: s.id }, v)));
+        (p.tracks || []).forEach(t => up('Tracks', t)); }
+      d.status = 'accepted'; persist(); return true; },
+    discardDump: id => { db.dumper.find(x => x.id === id).status = 'discarded'; persist(); return true; },
+    getTracks: id => JSON.parse(JSON.stringify(db.tracks.filter(t => t.volume_id === id))),
+    exportListened: () => 'preview mode: export runs only in the deployed page',
+  };
+})();
+const api = (fn, ...args) => new Promise((res, rej) => {
+  if (LOCAL) { try { res(Mock[fn](...args)); } catch (e) { rej(e); } return; }
+  google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args);
+});
+
+// ---------- state ----------
+let D = { franchises: [], groups: [], series: [], volumes: [], dumper: [], settings: {} };
+const UI = { view: 'home', seriesId: null, franchiseId: null, li: '', browse: store.get('audio-diary-browse') || 'franchise', q: '', audience: '', age: '', kind: '', status: '', star: '',
+  tag: '', cv: '', sort: 'recent', group: true, openCds: new Set(), openTracks: new Set(), editSeries: false, showTracks: store.get('audio-diary-tracks') === 'on', layout: store.get('audio-diary-layout') || 'tiles' };
+const AUDIENCES = ['Otome', 'BL', 'Joseimuke', 'General'];
+const KINDS = ['Drama CD', 'Tokuten', 'Audiobook'];
+const TRACK_TYPES = ['drama', 'free talk', 'song', 'bonus'];
+const OWNED = ['on NAS', 'on NAS, still packed', 'physical CD', 'other drive', 'streaming only', 'wishlist'];
+const STATUSES = ['listening', 'completed', 'planned', 'paused', 'dropped'];
+const AGES = { AA: 'All ages', R18: 'R18' };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const truthy = v => v === true || v === 'TRUE' || v === 'true' || v === 1;
+const fmtMin = m => { m = Math.round(+m || 0); return !m ? '—' : m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m}m`; };
+const tagsOf = s => String(s.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+const volsOf = id => D.volumes.filter(v => v.series_id === id).sort((a, b) => (+a.no || 0) - (+b.no || 0));
+const childrenOf = id => D.series.filter(s => s.parent_id === id);
+const franchiseOf = s => D.franchises.find(f => f.id === s.franchise_id);
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
+
+// Edits are saved per record, batched for a moment so typing doesn't fire a request per key.
+const pending = {};
+function edit(tab, id, key, value) {
+  const list = { Series: D.series, Volumes: D.volumes, Franchises: D.franchises }[tab];
+  const row = list.find(r => r.id === id); if (row) row[key] = value;
+  const k = tab + '|' + id; pending[k] = Object.assign(pending[k] || { id }, { [key]: value });
+  $('#saving').textContent = 'saving…';
+  clearTimeout(edit.t); edit.t = setTimeout(flush, 700);
+}
+function flush() {
+  const jobs = Object.entries(pending); Object.keys(pending).forEach(k => delete pending[k]);
+  Promise.all(jobs.map(([k, row]) => api('save', k.split('|')[0], row)))
+    .then(() => { $('#saving').textContent = LOCAL ? 'saved (preview)' : 'saved'; })
+    .catch(e => { $('#saving').textContent = 'not saved!'; toast('Save failed: ' + e.message); });
+}
+window.addEventListener('beforeunload', flush);
+
+// ---------- tabs ----------
+function renderTabs() {
+  const n = D.dumper.length;
+  const active = { series: 'library', add: 'library', franchise: 'library' }[UI.view] || UI.view;
+  $('#tabs').innerHTML = [['home', 'Home'], ['library', 'Library'], ['voices', 'Voices'], ['dumper', 'Dumper' + (n ? ` <span class="badge">${n}</span>` : '')], ['settings', 'Settings']]
+    .map(([v, l]) => `<button data-view="${v}" class="${active === v ? 'on' : ''}">${l}</button>`).join('');
+  $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => go(b.dataset.view));
+}
+function go(view, seriesId) { UI.view = view; if (view === 'franchise') { UI.franchiseId = seriesId; UI.li = ''; } else UI.seriesId = seriesId || null; UI.editSeries = false; UI.openCds.clear(); render(); window.scrollTo(0, 0); }
+
+// ---------- small shared pieces ----------
+const ICONS = {
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/>',
+  cart: '<path d="M3 4h2.2l2.3 10.5h10.6L20 7H6.4"/><circle cx="9.5" cy="19" r="1.4"/><circle cx="16.5" cy="19" r="1.4"/>',
+  play: '<circle cx="12" cy="12" r="9"/><path d="M10 8.6v6.8l5.6-3.4z"/>',
+  game: '<rect x="2.5" y="7" width="19" height="10" rx="5"/><path d="M7.5 10v4M5.5 12h4"/><circle cx="15.5" cy="11" r=".9"/><circle cx="17.8" cy="13" r=".9"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+};
+const icon = (name, size = 18) => `<svg class="ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
+
+// Links as quiet single-colour icons: trailer ▶, shop 🛒, game 🎮, anything else 🌐.
+function linkIcons(s) {
+  const links = [];
+  if (s.website) links.push(['Website', s.website]);
+  if (s.game) links.push(['Game', s.game]);
+  String(s.links || '').split('\n').forEach(l => { const m = l.match(/^(?:(.+?):\s*)?(https?:\/\/\S+)/); if (m) links.push([m[1] || 'Link', m[2]]); });
+  const kind = (label, url) => /youtu|trailer|pv/i.test(label + url) ? 'play' : /vndb|game/i.test(label + url) ? 'game'
+    : /shop|store|rejet\.jp\/works|stellaworth|animate|amazon|dlsite|booth|melon/i.test(label + url) ? 'cart' : 'globe';
+  return links.length ? `<div class="ilinks">${links.map(([label, url]) =>
+    `<a class="ilink" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(url)}">${icon(kind(label, url), 16)}<span>${esc(label)}</span></a>`).join('')}</div>` : '';
+}
+
+// A cover with the star tucked into its corner. `toggle` makes the star clickable.
+function coverBox(row, cls = '', toggle = '') {
+  const bg = row.cover ? `style="background-image:url('${esc(row.cover)}')"` : '';
+  const star = toggle ? `<button class="cstar ${truthy(row.star) ? 'on' : ''}" ${toggle} title="Star">★</button>`
+    : truthy(row.star) ? '<span class="cstar on">★</span>' : '';
+  return `<div class="cover ${cls}" ${bg}>${row.cover ? '' : esc((row.title || '?').trim()[0])}${star}</div>`;
+}
+
+const metaLine = parts => parts.filter(Boolean).map(esc).join('<span class="dot">·</span>');
+const stats = (s) => { const vols = volsOf(s.id); return { vols, heard: vols.filter(v => truthy(v.listened)).length,
+  runtime: vols.reduce((a, v) => a + (+v.runtime_min || +v.time_min || 0), 0), kids: childrenOf(s.id).length }; };
+
+// ---------- home ----------
+function home() {
+  const heardVols = D.volumes.filter(v => truthy(v.listened));
+  const heardMin = heardVols.reduce((a, v) => a + (+v.time_min || +v.runtime_min || 0), 0);
+  const now = D.series.filter(s => s.status === 'listening' || volsOf(s.id).some(v => v.started && !truthy(v.listened)));
+  const recent = [...heardVols].filter(v => v.finished).sort((a, b) => String(b.finished).localeCompare(String(a.finished))).slice(0, 8);
+  const nextCd = s => volsOf(s.id).find(v => !truthy(v.listened));
+  return `
+  <div class="stats">
+    <div class="stat"><b>${D.series.length}</b><span>series</span></div>
+    <div class="stat"><b>${D.volumes.length}</b><span>CDs</span></div>
+    <div class="stat"><b>${heardVols.length}</b><span>CDs listened</span></div>
+    <div class="stat"><b>${fmtMin(heardMin)}</b><span>listened</span></div>
+    <div class="stat"><b>${D.series.filter(s => truthy(s.star)).length}</b><span>starred</span></div>
+  </div>
+  ${D.dumper.length ? `<button class="notice" data-go="dumper">${D.dumper.length} finds waiting in the Dumper →</button>` : ''}
+  <h2 class="sect">Listening now</h2>
+  ${now.length ? `<div class="grid">${now.map(s => { const n = nextCd(s), st = stats(s);
+    return `<div class="card nowcard">
+      <button class="scard" data-open="${esc(s.id)}">${coverBox(s)}
+        <div style="min-width:0;flex:1"><div class="stitle">${esc(s.title)}</div>
+          <div class="ssub">${st.heard}/${st.vols.length} CDs${n ? ` · next: ${esc(n.title || n.li)}` : ''}</div>
+          ${st.vols.length ? `<div class="bar"><i style="width:${Math.round(100 * st.heard / st.vols.length)}%"></i></div>` : ''}</div></button>
+      ${n ? `<button class="tlink" data-done="${esc(n.id)}">✓ finished ${esc(n.title || 'next CD')} today</button>` : ''}</div>`; }).join('')}</div>`
+    : '<div class="note">Nothing in progress. Set a series to “listening” and it shows up here.</div>'}
+  <h2 class="sect">Recently finished</h2>
+  ${recent.length ? `<div class="card list">${recent.map(v => { const s = D.series.find(x => x.id === v.series_id) || {};
+    return `<button class="lrow recent" data-open="${esc(s.id)}"><span class="mono">${esc(v.finished)}</span>
+      <span class="ltitle"><b>${esc(v.title || s.title)}</b><span class="ssub">${esc(s.title || '')}</span></span>
+      <span class="lcell mono">${fmtMin(+v.time_min || +v.runtime_min)}</span><span class="lcell mono">${v.rating ? esc(v.rating) + '/10' : ''}</span></button>`; }).join('')}</div>`
+    : '<div class="note">Nothing finished yet.</div>'}`;
+}
+function bindHome() {
+  document.querySelectorAll('[data-open]').forEach(b => b.onclick = () => go('series', b.dataset.open));
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+  document.querySelectorAll('[data-done]').forEach(b => b.onclick = () => { markListened(b.dataset.done, true); render(); toast('Marked as listened'); });
+}
+
+function markListened(id, on) {
+  const v = D.volumes.find(x => x.id === id); if (!v) return;
+  edit('Volumes', id, 'listened', on);
+  if (on && !v.finished) edit('Volumes', id, 'finished', new Date().toISOString().slice(0, 10));
+  if (on && !v.time_min && v.runtime_min) { edit('Volumes', id, 'time_min', v.runtime_min); edit('Volumes', id, 'time_source', 'runtime'); }
+}
+
+// ---------- library ----------
+function matches(s) {
+  const q = UI.q.toLowerCase();
+  const vols = volsOf(s.id);
+  const hay = [s.title, s.title_en, s.tags, franchiseOf(s)?.name, ...vols.map(v => `${v.li} ${v.cv} ${v.title}`)].join(' ').toLowerCase();
+  const tags = new Set(tagsOf(s));
+  return (!q || hay.includes(q))
+    && (!UI.audience || s.audience === UI.audience)
+    && (!UI.age || s.age === UI.age)
+    && (!UI.kind || s.kind === UI.kind)
+    && (!UI.status || s.status === UI.status)
+    && (!UI.star || truthy(s.star))
+    && (!UI.cv || vols.some(v => String(v.cv).split(/[;,]/).map(x => x.trim()).includes(UI.cv)))
+    && (!UI.tag || tags.has(UI.tag));
+}
+
+function seriesCard(s) {
+  const { vols, heard, runtime, kids } = stats(s);
+  return `<div class="card"><button class="scard" data-open="${esc(s.id)}">${coverBox(s)}
+    <div style="min-width:0;flex:1">
+      <div class="stitle">${esc(s.title)}</div>
+      <div class="ssub">${metaLine([s.kind, s.audience, AGES[s.age], s.status])}</div>
+      <div class="ssub">${metaLine([vols.length ? `${heard}/${vols.length} CDs` : '', fmtMin(runtime), s.rating ? s.rating + '/10' : '', kids ? `+${kids} tokuten` : ''])}</div>
+      ${vols.length ? `<div class="bar"><i style="width:${Math.round(100 * heard / vols.length)}%"></i></div>` : ''}
+    </div></button></div>`;
+}
+
+function seriesRow(s) {
+  const { vols, heard, runtime, kids } = stats(s);
+  return `<button class="lrow" data-open="${esc(s.id)}">
+    <span class="star">${truthy(s.star) ? '★' : ''}</span>
+    <span class="ltitle"><b>${esc(s.title)}</b><span class="ssub">${esc([franchiseOf(s)?.name, kids ? `+${kids} tokuten` : ''].filter(Boolean).join(' · '))}</span></span>
+    <span class="lcell">${esc(s.kind || '')}</span>
+    <span class="lcell">${esc([s.audience, AGES[s.age]].filter(Boolean).join(' · '))}</span>
+    <span class="lcell">${esc(s.status || '')}</span>
+    <span class="lcell mono">${vols.length ? `${heard}/${vols.length}` : '—'}</span>
+    <span class="lcell mono">${fmtMin(runtime)}</span>
+    <span class="lcell mono">${s.rating ? esc(s.rating) + '/10' : ''}</span>
+    <span class="lcell mono">${esc(s.finished || '')}</span>
+  </button>`;
+}
+const LIST_HEAD = `<div class="lrow lhead"><span></span><span class="ltitle">Title</span><span class="lcell">Kind</span><span class="lcell">Audience</span>
+  <span class="lcell">Status</span><span class="lcell">CDs</span><span class="lcell">Time</span><span class="lcell">Rating</span><span class="lcell">Finished</span></div>`;
+
+function library() {
+  const all = D.series;
+  const shown = all.filter(matches);
+  // Tokutens sit inside their parent's page unless they match on their own and the parent doesn't.
+  const shownIds = new Set(shown.map(s => s.id));
+  const top = shown.filter(s => !(s.parent_id && shownIds.has(s.parent_id)));
+  const sorters = { recent: (a, b) => String(b.finished || b.updated || '').localeCompare(String(a.finished || a.updated || '')),
+    title: (a, b) => String(a.title).localeCompare(String(b.title), 'ja'), rating: (a, b) => (+b.rating || 0) - (+a.rating || 0) };
+  top.sort(sorters[UI.sort]);
+  const allTags = [...new Set(all.flatMap(tagsOf))].sort();
+  // Every filter is a dropdown: "Label: all" plus the values.
+  const dd = (key, label, values, labels = {}) => `<select data-dd="${key}" class="${UI[key] ? 'set' : ''}"><option value="">${label}: all</option>${
+    values.map(v => `<option value="${esc(v)}" ${String(UI[key]) === String(v) ? 'selected' : ''}>${esc(labels[v] || v)}</option>`).join('')}</select>`;
+  const block = list => UI.layout === 'list'
+    ? `<div class="list card">${LIST_HEAD}${list.map(seriesRow).join('')}</div>`
+    : `<div class="grid">${list.map(seriesCard).join('')}</div>`;
+  let body;
+  const hubs = D.franchises.filter(isHub);
+  if (!top.length) body = `<div class="empty">${all.length ? 'Nothing matches these filters.' : 'No series yet — add one, or accept finds from the Dumper.'}</div>`;
+  else if (UI.browse === 'franchise') {
+    // Big franchises as one card each; everything else as its own series card.
+    const shownHubs = hubs.filter(f => top.some(s => s.franchise_id === f.id));
+    const loose = top.filter(s => !hubs.some(f => f.id === s.franchise_id));
+    body = `<div class="grid">${shownHubs.map(franchiseCard).join('')}${loose.map(seriesCard).join('')}</div>`;
+  } else if (UI.browse === 'cds') {
+    const cds = top.flatMap(s => volsOf(s.id));
+    body = `<div class="count" style="margin-bottom:6px">${cds.length} CDs</div><div class="card list">${cds.map(cdRow).join('')}</div>`;
+  } else if (UI.group) {
+    // A heading only for franchises with 2+ series; the rest share one block after them.
+    const groups = {}, loose = [];
+    top.forEach(s => { const f = franchiseOf(s); if (isHub(f)) (groups[f.name] ||= []).push(s); else loose.push(s); });
+    const names = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'ja'));
+    body = names.map(g => `<div class="franchise-head">${esc(g)} <span class="count">${groups[g].length}</span></div>${block(groups[g])}`).join('')
+      + (loose.length ? (names.length ? `<div class="franchise-head">Other series <span class="count">${loose.length}</span></div>` : '') + block(loose) : '');
+  } else body = block(top);
+  return `
+  <div class="filters" style="margin-top:18px">
+    <input type="search" id="q" placeholder="Search title, LI, voice actor, tag…" value="${esc(UI.q)}">
+    <select id="sort"><option value="recent">Recently finished</option><option value="title">Title</option><option value="rating">Rating</option></select>
+    <div class="seg">${[['franchise', 'Franchises'], ['series', 'Series'], ['cds', 'CDs']].map(([k, l]) => `<button data-browse="${k}" class="${UI.browse === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    ${UI.browse === 'series' ? `<div class="seg"><button data-layout="tiles" class="${UI.layout === 'tiles' ? 'on' : ''}" title="Tiles">▦</button><button data-layout="list" class="${UI.layout === 'list' ? 'on' : ''}" title="List">☰</button></div>
+    <label class="check"><input type="checkbox" id="group" ${UI.group ? 'checked' : ''}> by franchise</label>` : ''}
+    <button class="btn fill" id="addnew">+ Add</button>
+  </div>
+  <div class="filters">
+    ${dd('audience', 'Audience', AUDIENCES)}${dd('age', 'Age', Object.keys(AGES), AGES)}
+    ${dd('kind', 'Kind', KINDS)}${dd('status', 'Status', STATUSES)}
+    ${allTags.length ? dd('tag', 'Tag', allTags) : ''}${dd('star', 'Starred', ['yes'], { yes: '★ only' })}
+    ${UI.cv ? `<button class="tlink" id="clearcv">CV: ${esc(UI.cv)} ✕</button>` : ''}
+    <span class="count">${top.length} shown</span>
+  </div>
+  ${body}`;
+}
+
+function bindLibrary() {
+  const q = $('#q'); q.oninput = e => { UI.q = e.target.value; const p = q.selectionStart; render(); const n = $('#q'); n.focus(); n.setSelectionRange(p, p); };
+  $('#sort').value = UI.sort; $('#sort').onchange = e => { UI.sort = e.target.value; render(); };
+  if ($('#group')) $('#group').onchange = e => { UI.group = e.target.checked; render(); };
+  document.querySelectorAll('[data-browse]').forEach(b => b.onclick = () => { UI.browse = b.dataset.browse; store.set('audio-diary-browse', UI.browse); render(); });
+  document.querySelectorAll('[data-franchise]').forEach(b => b.onclick = () => go('franchise', b.dataset.franchise));
+  bindCdRows();
+  $('#addnew').onclick = () => go('add');
+  document.querySelectorAll('[data-layout]').forEach(b => b.onclick = () => { UI.layout = b.dataset.layout; store.set('audio-diary-layout', UI.layout); render(); });
+  document.querySelectorAll('[data-dd]').forEach(el => el.onchange = () => { UI[el.dataset.dd] = el.value; render(); });
+  if ($('#clearcv')) $('#clearcv').onclick = () => { UI.cv = ''; render(); };
+  document.querySelectorAll('[data-open]').forEach(b => b.onclick = () => go('series', b.dataset.open));
+}
+
+// ---------- franchises ----------
+// A franchise gets its own card and page once it has 2+ series; otherwise its series stand alone.
+const seriesOfFranchise = fid => D.series.filter(s => s.franchise_id === fid);
+const isHub = f => f && seriesOfFranchise(f.id).length >= 2;
+const groupsOf = fid => (D.groups || []).filter(g => g.franchise_id === fid).sort((a, b) => (+a.order || 0) - (+b.order || 0));
+const castLabel = f => (f && f.cast_label) || 'LI';
+const splitCast = text => String(text || '').split(/[,、;&]|\s+VS\s+/i).map(x => x.trim()).filter(Boolean);
+
+function franchiseStats(f) {
+  const series = seriesOfFranchise(f.id), vols = series.flatMap(s => volsOf(s.id));
+  return { series, vols, heard: vols.filter(v => truthy(v.listened)).length,
+    runtime: vols.reduce((a, v) => a + (+v.runtime_min || +v.time_min || 0), 0),
+    cover: (series.find(s => s.cover) || {}).cover || f.cover || '' };
+}
+
+function franchiseCard(f) {
+  const st = franchiseStats(f);
+  return `<div class="card"><button class="scard" data-franchise="${esc(f.id)}">${coverBox({ title: f.name, cover: st.cover, star: '' })}
+    <div style="min-width:0;flex:1">
+      <div class="stitle">${esc(f.name)}</div>
+      <div class="ssub">${metaLine([`${st.series.length} series`, groupsOf(f.id).length ? `${groupsOf(f.id).length} groups` : '', f.audience])}</div>
+      <div class="ssub">${metaLine([`${st.heard}/${st.vols.length} CDs`, fmtMin(st.runtime)])}</div>
+      ${st.vols.length ? `<div class="bar"><i style="width:${Math.round(100 * st.heard / st.vols.length)}%"></i></div>` : ''}
+    </div></button></div>`;
+}
+
+// One CD as a row in flat lists (the "CDs" view and the LI filter on a franchise page).
+function cdRow(v) {
+  const s = D.series.find(x => x.id === v.series_id) || {};
+  return `<div class="lrow cdrow">
+    <input type="checkbox" data-cdheard="${esc(v.id)}" ${truthy(v.listened) ? 'checked' : ''} title="Listened">
+    ${coverBox(v.cover ? v : { ...v, cover: s.cover }, 'thumb')}
+    <button class="ltitle linkish" data-open="${esc(s.id)}"><b>${esc(v.title || v.li || 'CD')}</b>
+      <span class="ssub">${esc([s.title, v.li, v.cv && 'CV ' + v.cv].filter(Boolean).join(' · '))}</span></button>
+    <span class="lcell mono">${esc(v.finished || '')}</span>
+    <span class="lcell mono">${fmtMin(+v.time_min || +v.runtime_min)}</span>
+    <span class="lcell mono">${v.rating ? esc(v.rating) + '/10' : ''}</span>
+  </div>`;
+}
+
+function franchisePage() {
+  const f = D.franchises.find(x => x.id === UI.franchiseId);
+  if (!f) return `<div class="empty">That franchise is gone.</div>`;
+  const st = franchiseStats(f), groups = groupsOf(f.id), label = castLabel(f);
+  const cast = [...new Set(st.vols.flatMap(v => splitCast(v.li)))].sort();
+  const games = String(f.games || '').split(/\s+/).filter(Boolean);
+  const sections = [...groups.map(g => ({ g, series: st.series.filter(s => s.group_id === g.id) })),
+    { g: { name: groups.length ? 'Other' : '' }, series: st.series.filter(s => !groups.some(g => g.id === s.group_id)) }].filter(x => x.series.length);
+  const body = UI.li
+    ? sections.map(({ g, series }) => {
+        const cds = series.flatMap(s => volsOf(s.id)).filter(v => splitCast(v.li).includes(UI.li));
+        return cds.length ? `<h2 class="sect" id="grp-${esc(g.id || 'other')}">${esc(g.name)} <span class="count">${cds.length} CDs</span></h2><div class="card list">${cds.map(cdRow).join('')}</div>` : '';
+      }).join('') || `<div class="empty">No CDs with ${esc(UI.li)}.</div>`
+    : sections.map(({ g, series }) => `<h2 class="sect" id="grp-${esc(g.id || 'other')}">${esc(g.name)}
+        ${g.game ? `<a class="ilink" href="${esc(g.game)}" target="_blank" rel="noopener" title="${esc(g.game)}">${icon('game', 16)}<span>game</span></a>` : ''}
+        <span class="count">${series.reduce((a, s) => a + stats(s).heard, 0)}/${series.reduce((a, s) => a + stats(s).vols.length, 0)} CDs</span></h2>
+        ${UI.layout === 'list' ? `<div class="list card">${LIST_HEAD}${series.map(seriesRow).join('')}</div>` : `<div class="grid">${series.map(seriesCard).join('')}</div>`}`).join('');
+  return `<button class="back" id="back">← library</button>
+  <div class="hero">
+    ${coverBox({ title: f.name, cover: st.cover }, 'big')}
+    <div class="grow">
+      <div class="titlebar"><h1>${esc(f.name)}</h1></div>
+      <div class="meta">${metaLine([f.audience, `${st.series.length} series`, `${st.heard}/${st.vols.length} CDs listened`, fmtMin(st.runtime)])}</div>
+      ${games.length ? `<div class="ilinks">${games.map((u, i) => `<a class="ilink" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${icon('game', 16)}<span>${esc((groups.find(g => g.game === u) || {}).name || 'game ' + (i + 1))}</span></a>`).join('')}</div>` : ''}
+      ${st.vols.length ? `<div class="bar" style="max-width:420px;margin-top:10px"><i style="width:${Math.round(100 * st.heard / st.vols.length)}%"></i></div>` : ''}
+    </div>
+  </div>
+  <div class="filters">
+    ${groups.length > 1 && !UI.li ? `<div class="jumps">${sections.map(({ g }) => `<button class="tlink" data-jump="grp-${esc(g.id || 'other')}">${esc(g.name)}</button>`).join('')}</div>` : ''}
+    <span style="margin-left:auto"></span>
+    ${cast.length ? `<select id="lifilter" class="${UI.li ? 'set' : ''}"><option value="">${esc(label)}: all</option>${cast.map(c => `<option ${UI.li === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}
+    <div class="seg"><button data-layout="tiles" class="${UI.layout === 'tiles' ? 'on' : ''}" title="Tiles">▦</button><button data-layout="list" class="${UI.layout === 'list' ? 'on' : ''}" title="List">☰</button></div>
+  </div>
+  ${body}`;
+}
+
+function bindFranchise() {
+  $('#back').onclick = () => go('library');
+  if ($('#lifilter')) $('#lifilter').onchange = e => { UI.li = e.target.value; render(); };
+  document.querySelectorAll('[data-layout]').forEach(b => b.onclick = () => { UI.layout = b.dataset.layout; store.set('audio-diary-layout', UI.layout); render(); });
+  // The sticky top bar wraps to ~130px on a phone; land the heading just below it.
+  document.querySelectorAll('[data-jump]').forEach(b => b.onclick = () => scrollTo({ behavior: 'smooth',
+    top: document.getElementById(b.dataset.jump).getBoundingClientRect().top + scrollY - $('.top').offsetHeight - 8 }));
+  bindCdRows();
+  document.querySelectorAll('[data-open]').forEach(b => b.onclick = () => go('series', b.dataset.open));
+}
+
+function bindCdRows() {
+  document.querySelectorAll('[data-cdheard]').forEach(el => el.onchange = () => { markListened(el.dataset.cdheard, el.checked); render(); });
+}
+
+// ---------- series page ----------
+const RATINGS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+const field = (tab, row, key, label, type = 'text', opts) => {
+  const v = row[key] ?? '';
+  let input;
+  if (type === 'select' && v !== '' && !opts.map(String).includes(String(v))) opts = [...opts, v];
+  if (type === 'select') input = `<select data-k="${key}">${['', ...opts].map(o => `<option ${String(v) === String(o) ? 'selected' : ''} value="${esc(o)}">${esc(o ? (AGES[o] || o) : '—')}</option>`).join('')}</select>`;
+  else if (type === 'textarea') input = `<textarea data-k="${key}">${esc(v)}</textarea>`;
+  else input = `<input data-k="${key}" type="${type}" value="${esc(v)}">`;
+  return `<div class="field ${type === 'textarea' ? 'wide' : ''}" data-tab="${tab}" data-id="${esc(row.id)}"><label>${label}</label>${input}</div>`;
+};
+
+// One CD: what you see, plus a quick edit with only your own fields.
+function volumeRow(v) {
+  const time = +v.time_min || +v.runtime_min || 0;
+  const open = UI.openCds.has(v.id);
+  const who = [v.li && !String(v.title).includes(String(v.li).split(' ')[0]) ? v.li : '', v.cv ? 'CV ' + v.cv : ''].filter(Boolean).join(' · ');
+  return `<div class="vol ${open ? 'open' : ''}" data-vol="${esc(v.id)}">
+    <div class="vrow">
+      <input type="checkbox" data-vk="listened" ${truthy(v.listened) ? 'checked' : ''} title="Listened">
+      ${coverBox(v, 'thumb', `data-vstar="${esc(v.id)}"`)}
+      <div class="vtitle"><b>${esc(v.title || v.li || 'CD')}</b>${who ? `<span class="cv">${esc(who)}</span>` : ''}</div>
+      <span class="mono vmeta">${esc([v.started && v.finished && v.started !== v.finished ? `${v.started} → ${v.finished}` : v.finished || v.started].filter(Boolean).join(''))}</span>
+      <span class="mono">${fmtMin(time)}</span>
+      <span class="mono vrate">${v.rating ? esc(v.rating) + '/10' : ''}</span>
+      <button class="editbtn ${open ? 'on' : ''}" data-editcd="${esc(v.id)}" title="My notes on this CD">${icon('pencil', 16)}</button>
+    </div>
+    ${open ? `<div class="vedit"><div class="quick">
+      ${field('Volumes', v, 'started', 'Started', 'date')}${field('Volumes', v, 'finished', 'Finished', 'date')}
+      ${field('Volumes', v, 'rating', 'Rating', 'select', RATINGS)}
+      ${field('Volumes', v, 'notes', 'Notes', 'textarea')}</div>
+      ${UI.showTracks ? `<div class="tracks" data-tracks="${esc(v.id)}"><button class="tlink" data-loadtracks="${esc(v.id)}">${UI.openTracks.has(v.id) ? 'hide tracks' : 'show tracks'}</button><div class="tlist"></div></div>` : ''}</div>` : ''}
+  </div>`;
+}
+
+// Tracks load on demand; song tracks don't count toward listening time.
+function tracksBlock(volumeId, tracks) {
+  if (!tracks.length) return `<div class="note">No tracks yet — the scanner fills them in from your files.</div>`;
+  const spoken = tracks.filter(t => t.type !== 'song').reduce((a, t) => a + (+t.duration_s || 0), 0);
+  return `<div class="count" style="margin:6px 0">${tracks.length} tracks · spoken ${fmtMin(spoken / 60)}</div>` +
+    tracks.sort((a, b) => (+a.no || 0) - (+b.no || 0)).map(t => `<div class="trow" data-track="${esc(t.id)}">
+      <input type="checkbox" data-tk="listened" ${truthy(t.listened) ? 'checked' : ''} title="Listened">
+      <span class="ttitle">${esc(t.title)}${t.type && t.type !== 'drama' ? ` <span class="cv">${esc(t.type)}</span>` : ''}${t.subtitle ? ` <span class="cv" title="${esc(t.subtitle)}">· 字幕</span>` : ''}</span>
+      <span class="mono">${fmtMin((+t.duration_s || 0) / 60)}</span></div>`).join('');
+}
+
+// The scanner's side of a series: catalogue facts, CD facts, where things are, adding and deleting.
+function cataloguePanel(s, vols) {
+  const cdRow = v => `<div class="catrow" data-tab="Volumes" data-id="${esc(v.id)}">
+    ${['no:No.:number', 'title:CD title', 'li:LI', 'cv:Voice actor', 'runtime_min:Runtime:number', 'time_min:Time listened:number', 'release:Release', 'catalog_no:Catalog no.',
+      'store:Store', 'dlsite:DLsite', 'cover:Cover URL:url', 'file_path:Where this CD is'].map(spec => { const [k, l, t] = spec.split(':');
+      return `<label class="mini"><span>${l}</span><input data-k="${k}" type="${t || 'text'}" value="${esc(v[k] ?? '')}"></label>`; }).join('')}
+    <button class="tlink danger" data-delvol="${esc(v.id)}">delete CD</button></div>`;
+  return `<section class="box catalogue" id="sdetails"><h2>Catalogue <span class="count">filled in by the scanner — edit only to correct</span></h2>
+    <div class="form">
+    ${field('Series', s, 'title', 'Title')}${field('Series', s, 'title_en', 'English / romaji title')}
+    <div class="field" data-tab="Series" data-id="${esc(s.id)}"><label>Franchise</label><input data-k="franchise_name" list="franchise-list" value="${esc(franchiseOf(s)?.name || '')}"></div>
+    ${field('Series', s, 'kind', 'Kind', 'select', KINDS)}${field('Series', s, 'audience', 'Audience', 'select', AUDIENCES)}
+    ${field('Series', s, 'age', 'Age', 'select', Object.keys(AGES))}
+    ${field('Series', s, 'release', 'Release')}${field('Series', s, 'label', 'Label / circle')}${field('Series', s, 'store', 'Store (tokuten)')}
+    <div class="field" data-tab="Series" data-id="${esc(s.id)}"><label>Tokuten of</label><select data-k="parent_id"><option value="">—</option>${D.series.filter(x => x.id !== s.id && x.kind !== 'Tokuten')
+      .sort((a, b) => String(a.title).localeCompare(String(b.title), 'ja')).map(x => `<option value="${esc(x.id)}" ${x.id === s.parent_id ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select></div>
+    ${field('Series', s, 'game', 'Game link', 'url')}${field('Series', s, 'website', 'Website', 'url')}${field('Series', s, 'cover', 'Cover URL', 'url')}
+    ${field('Series', s, 'owned', 'Have it', 'select', OWNED)}
+    <div class="field wide" data-tab="Series" data-id="${esc(s.id)}"><label>Where it is (path, shelf, link…)</label><input data-k="location" value="${esc(s.location || '')}"></div>
+    ${field('Series', s, 'links', 'Other links (one per line, “Label: url”)', 'textarea')}
+    ${field('Series', s, 'synopsis', 'Synopsis', 'textarea')}
+    ${field('Series', s, 'contents', 'Contents (what the archive holds)', 'textarea')}
+    </div><datalist id="franchise-list">${D.franchises.map(f => `<option value="${esc(f.name)}">`).join('')}</datalist>
+    <h3 class="sub">CDs</h3>
+    ${vols.map(cdRow).join('') || '<div class="note">No CDs yet.</div>'}
+    <div class="actions"><button class="tlink danger" id="delseries" style="margin-left:auto">delete series</button></div></section>`;
+}
+
+function seriesPage() {
+  const s = D.series.find(x => x.id === UI.seriesId);
+  if (!s) return `<div class="empty">That series is gone.</div>`;
+  const { vols, heard, runtime } = stats(s), kids = childrenOf(s.id);
+  const parent = D.series.find(x => x.id === s.parent_id);
+  const hub = isHub(franchiseOf(s)) ? franchiseOf(s) : null;
+  return `<button class="back" id="back">← ${esc(hub ? hub.name : 'library')}</button>
+  <div class="hero">
+    ${coverBox(s, 'big', 'id="sstar"')}
+    <div class="grow">
+      <div class="titlebar"><h1>${esc(s.title)}</h1>
+        <button class="editbtn ${UI.editSeries ? 'on' : ''}" id="sedit" title="Catalogue (scanner fields)">${icon('pencil', 20)}</button></div>
+      ${s.title_en ? `<div class="en">${esc(s.title_en)}</div>` : ''}
+      <div class="meta">${metaLine([franchiseOf(s)?.name, s.kind, s.audience, AGES[s.age], s.label, `${heard}/${vols.length} CDs`, fmtMin(runtime)])}
+        ${parent ? `<span class="dot">·</span><button class="tlink" data-open="${esc(parent.id)}">tokuten of ${esc(parent.title)}</button>` : ''}</div>
+      ${linkIcons(s)}
+      ${s.synopsis ? `<details class="synopsis"><summary class="tlink">synopsis</summary><p>${esc(s.synopsis)}</p></details>` : ''}
+    </div>
+  </div>
+  <section class="box diary"><h2>My diary</h2>
+    <div class="quick">
+      ${field('Series', s, 'status', 'Status', 'select', STATUSES)}${field('Series', s, 'rating', 'Rating /10', 'select', RATINGS)}
+      ${field('Series', s, 'started', 'Started', 'date')}${field('Series', s, 'finished', 'Finished', 'date')}
+    </div>
+    <div class="quick notes">${field('Series', s, 'notes', 'Notes', 'textarea')}${field('Series', s, 'notes_after', 'After finishing', 'textarea')}</div>
+    <details class="more"><summary class="tlink">level, difficulty, tags</summary><div class="quick">
+      ${field('Series', s, 'level', 'Level (JLPT)', 'select', ['N5', 'N4', 'N3', 'N2', 'N1'])}${field('Series', s, 'difficulty', 'Difficulty /10')}
+      ${field('Series', s, 'tags', 'Tags (comma separated)')}</div></details>
+  </section>
+  <section class="box"><h2>CDs <span class="count">${heard}/${vols.length} listened</span>
+      <span class="hbtns"><button class="ibtn" id="allheard" title="Mark all listened" ${vols.length && heard < vols.length ? '' : 'disabled'}>✓✓</button>
+      <button class="ibtn" id="addvol" title="Add a CD">+</button></span></h2>
+    ${vols.map(volumeRow).join('') || '<div class="note">No CDs yet — add one with +, or let the scanner do it.</div>'}
+  </section>
+  ${kids.length ? `<section class="box"><h2>Tokutens &amp; bonus CDs <span class="count">${kids.length}</span></h2><div class="grid">${kids.map(seriesCard).join('')}</div></section>` : ''}
+  ${UI.editSeries ? cataloguePanel(s, vols) : ''}`;
+}
+
+function bindSeries() {
+  const s = D.series.find(x => x.id === UI.seriesId); if (!s) return;
+  const hub = isHub(franchiseOf(s)) ? franchiseOf(s) : null;
+  $('#back').onclick = () => hub ? go('franchise', hub.id) : go('library');
+  $('#sstar').onclick = () => { edit('Series', s.id, 'star', !truthy(s.star)); render(); };
+  $('#sedit').onclick = () => { UI.editSeries = !UI.editSeries; render(); if (UI.editSeries) $('#sdetails').scrollIntoView({ behavior: 'smooth' }); };
+  document.querySelectorAll('[data-editcd]').forEach(b => b.onclick = () => {
+    const id = b.dataset.editcd; UI.openCds.has(id) ? UI.openCds.delete(id) : UI.openCds.add(id); render();
+  });
+  document.querySelectorAll('[data-vstar]').forEach(b => b.onclick = () => { const v = D.volumes.find(x => x.id === b.dataset.vstar); edit('Volumes', v.id, 'star', !truthy(v.star)); render(); });
+  document.querySelectorAll('[data-open]').forEach(b => b.onclick = () => go('series', b.dataset.open));
+  document.querySelectorAll('[data-tab][data-id] [data-k]').forEach(el => {
+    const f = el.closest('[data-tab]'), tab = f.dataset.tab, id = f.dataset.id, k = el.dataset.k;
+    el.onchange = () => {
+      if (k === 'franchise_name') return setFranchise(id, el.value.trim());
+      edit(tab, id, k, el.value);
+      if (['status', 'rating', 'kind', 'audience', 'age', 'title', 'parent_id', 'cover', 'started', 'finished', 'li', 'cv', 'runtime_min', 'time_min'].includes(k)) render();
+    };
+  });
+  document.querySelectorAll('[data-vol]').forEach(row => {
+    row.querySelector('[data-vk=listened]').onchange = e => { markListened(row.dataset.vol, e.target.checked); render(); };
+  });
+  document.querySelectorAll('[data-loadtracks]').forEach(b => {
+    const id = b.dataset.loadtracks, box = document.querySelector(`[data-tracks="${id}"] .tlist`);
+    const load = () => {
+    box.innerHTML = '<div class="count">loading tracks…</div>';
+    const show = tracks => {
+      box.innerHTML = tracksBlock(id, tracks);
+      box.querySelectorAll('[data-track]').forEach(row => row.querySelectorAll('[data-tk]').forEach(el => el.onchange = () => {
+        const t = tracks.find(x => x.id === row.dataset.track), k = el.dataset.tk;
+        t[k] = el.type === 'checkbox' ? el.checked : el.value;
+        api('save', 'Tracks', { id: t.id, [k]: t[k] }).catch(e => toast('Save failed: ' + e.message));
+      }));
+    };
+    api('getTracks', id).then(show).catch(e => { box.innerHTML = `<div class="note">Couldn't load tracks: ${esc(e.message)}</div>`; });
+    };
+    if (UI.openTracks.has(id)) load();
+    b.onclick = () => { UI.openTracks.has(id) ? UI.openTracks.delete(id) : UI.openTracks.add(id); render(); };
+  });
+  $('#allheard').onclick = () => { volsOf(s.id).forEach(v => markListened(v.id, true)); render(); };
+  // A new CD starts empty; the catalogue opens so its title / LI / voice actor can be filled in.
+  $('#addvol').onclick = () => api('saveMany', 'Volumes', [{ series_id: s.id, listened: false, no: volsOf(s.id).length + 1, title: `CD ${volsOf(s.id).length + 1}` }])
+    .then(saved => { D.volumes.push(...saved); UI.editSeries = true; render(); $('#sdetails').scrollIntoView({ behavior: 'smooth' }); toast('CD added — fill it in below'); });
+  document.querySelectorAll('[data-delvol]').forEach(b => b.onclick = () => {
+    if (!confirm('Delete this CD?')) return;
+    api('remove', 'Volumes', b.dataset.delvol).then(() => { D.volumes = D.volumes.filter(v => v.id !== b.dataset.delvol); render(); });
+  });
+  if (!UI.editSeries) return;
+  $('#delseries').onclick = () => {
+    if (!confirm(`Delete "${s.title}" and its CDs?`)) return;
+    api('remove', 'Series', s.id).then(() => { D.series = D.series.filter(x => x.id !== s.id); D.volumes = D.volumes.filter(v => v.series_id !== s.id); go('library'); });
+  };
+}
+
+function setFranchise(seriesId, name) {
+  if (!name) return edit('Series', seriesId, 'franchise_id', '');
+  const f = D.franchises.find(x => x.name === name);
+  if (f) { edit('Series', seriesId, 'franchise_id', f.id); return render(); }
+  api('save', 'Franchises', { name }).then(nf => { D.franchises.push(nf); edit('Series', seriesId, 'franchise_id', nf.id); render(); });
+}
+
+// ---------- voices ----------
+function voices() {
+  const by = {};
+  D.volumes.forEach(v => String(v.cv || '').split(/[;,、]/).map(x => x.trim()).filter(Boolean).forEach(cv => {
+    (by[cv] ||= { lis: new Set(), series: new Set(), heard: 0 });
+    if (v.li) by[cv].lis.add(v.li); by[cv].series.add(v.series_id); if (truthy(v.listened)) by[cv].heard++;
+  }));
+  const names = Object.keys(by).sort((a, b) => by[b].series.size - by[a].series.size || a.localeCompare(b, 'ja'));
+  return `<section class="box" style="margin-top:18px"><h2>Voice actors <span class="count">${names.length}</span></h2>${names.map(n => `<div class="va"><b>${esc(n)}</b>
+      <span class="chip">${by[n].series.size} series</span><span class="chip">${by[n].heard} listened</span>
+      <span class="ssub" style="flex:1">${esc([...by[n].lis].join(' · '))}</span>
+      <button class="btn ghost" data-cv="${esc(n)}">show</button></div>`).join('') || '<div class="empty">No voice actors yet.</div>'}</section>`;
+}
+function bindVoices() { document.querySelectorAll('[data-cv]').forEach(b => b.onclick = () => { UI.cv = b.dataset.cv; go('library'); }); }
+
+// ---------- add ----------
+function addView() {
+  return `<button class="back" id="back">← library</button><section class="box"><h2>New series</h2><div class="form">
+      <div class="field"><label>Title</label><input id="ns-title"></div>
+      <div class="field"><label>English / romaji</label><input id="ns-en"></div>
+      <div class="field"><label>Franchise</label><input id="ns-fr" list="franchise-list2"></div>
+      <div class="field"><label>Kind</label><select id="ns-kind">${KINDS.map(k => `<option>${k}</option>`).join('')}</select></div>
+      <div class="field"><label>Audience</label><select id="ns-aud">${AUDIENCES.map(k => `<option>${k}</option>`).join('')}</select></div>
+      <div class="field"><label>Age</label><select id="ns-age"><option value="">—</option><option value="AA">All ages</option><option value="R18">R18</option></select></div>
+      <div class="field"><label>Have it</label><select id="ns-owned"><option value="">—</option>${OWNED.map(o => `<option>${o}</option>`).join('')}</select></div>
+      <div class="field wide"><label>Where it is (path, shelf, link…)</label><input id="ns-loc" placeholder="Z:\AUDIO\DRAMA CDs\OTOME\AA\Original\…"></div>
+      <div class="field wide"><label>Tags</label><input id="ns-tags" placeholder="vampire, yandere"></div>
+    </div><datalist id="franchise-list2">${D.franchises.map(f => `<option value="${esc(f.name)}">`).join('')}</datalist>
+    <div class="btns"><button class="btn fill" id="ns-go">Create series</button></div></section>`;
+}
+function bindAdd() {
+  $('#back').onclick = () => go('library');
+  const base = () => ({ kind: $('#ns-kind').value, audience: $('#ns-aud').value, age: $('#ns-age').value, tags: $('#ns-tags').value,
+    owned: $('#ns-owned').value, location: $('#ns-loc').value.trim(), status: 'planned' });
+  const withFranchise = (rows) => {
+    const name = $('#ns-fr').value.trim(); if (!name) return Promise.resolve(rows);
+    const f = D.franchises.find(x => x.name === name);
+    return (f ? Promise.resolve(f) : api('save', 'Franchises', { name }).then(nf => (D.franchises.push(nf), nf)))
+      .then(fr => rows.map(r => Object.assign({ franchise_id: fr.id }, r)));
+  };
+  const create = rows => withFranchise(rows).then(rs => api('saveMany', 'Series', rs)).then(saved => {
+    D.series.push(...saved); toast(`${saved.length} series created`); go(saved.length === 1 ? 'series' : 'library', saved.length === 1 ? saved[0].id : null);
+  });
+  $('#ns-go').onclick = () => { const t = $('#ns-title').value.trim(); if (!t) return toast('Title first'); create([Object.assign(base(), { title: t, title_en: $('#ns-en').value.trim() })]); };
+}
+
+// ---------- dumper ----------
+function dumperView() {
+  if (!D.dumper.length) return `<div class="note" style="margin-top:18px">The Dumper holds what the scanner finds — new CDs, runtimes, voice actors, track lists — until you accept it.
+    Accepted finds only fill empty fields; nothing you typed is overwritten.</div><div class="empty">Nothing waiting.</div>`;
+  return `<div class="note" style="margin-top:18px">${D.dumper.length} finds waiting. Accepting only fills empty fields; nothing you typed is overwritten.</div>
+    <div class="btns"><button class="btn fill" id="acceptall">Accept all</button></div>` +
+    D.dumper.map(d => { let p = {}; try { p = JSON.parse(d.payload_json); } catch (e) {}
+      const title = p.series ? p.series.title : (p.row && (p.row.title || p.row.id)) || d.target_id;
+      const target = D.series.find(s => s.id === (p.series && p.series.id));
+      return `<section class="box"><h2>${esc(title)} <span class="chip">${esc(d.type)}</span>${target ? '<span class="chip">updates existing</span>' : '<span class="chip tok">new</span>'}</h2>
+        <div class="ssub">${esc(d.source)} · ${esc(String(d.found_at).slice(0, 10))}${p.volumes ? ` · ${p.volumes.length} CDs` : ''}</div>
+        <details><summary class="mono">what it would add</summary><pre class="payload">${esc(JSON.stringify(p, null, 2))}</pre></details>
+        <div class="btns"><button class="btn fill" data-accept="${esc(d.id)}">Accept</button><button class="btn ghost" data-discard="${esc(d.id)}">Discard</button></div></section>`; }).join('');
+}
+function bindDumper() {
+  const done = id => { D.dumper = D.dumper.filter(d => d.id !== id); };
+  document.querySelectorAll('[data-accept]').forEach(b => b.onclick = () => api('acceptDump', b.dataset.accept).then(() => { done(b.dataset.accept); reload('Accepted'); }));
+  document.querySelectorAll('[data-discard]').forEach(b => b.onclick = () => api('discardDump', b.dataset.discard).then(() => { done(b.dataset.discard); render(); }));
+  if ($('#acceptall')) $('#acceptall').onclick = () => D.dumper.reduce((p, d) => p.then(() => api('acceptDump', d.id)), Promise.resolve()).then(() => reload('All accepted'));
+}
+
+// ---------- settings ----------
+function settingsView() {
+  const theme = store.get('audio-diary-theme') || 'coffee';
+  return `<section class="box"><h2>Look</h2><div class="form">
+      <div class="field"><label>Theme</label><select id="theme">${['coffee', 'darkpink', 'paper', 'dark'].map(t => `<option ${t === theme ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+    </div></section>
+  <section class="box"><h2>CDs</h2>
+    <label class="check"><input type="checkbox" id="showtracks" ${UI.showTracks ? 'checked' : ''}> show tracks inside each CD (titles, durations, subtitles)</label></section>
+  <section class="box"><h2>Export</h2><div class="note">Everything you've listened to, one row per CD, in your old tracker's columns — saved as a new Sheet in your Drive.</div>
+    <div class="btns"><button class="btn fill" id="export">Export listened</button></div><div id="exportout" class="ssub"></div></section>
+  <section class="box"><h2>About</h2><div class="ssub">${LOCAL ? 'Preview mode: changes stay in this browser only.' : 'Data lives in the Audio Diary Google Sheet.'}</div></section>`;
+}
+function bindSettings() {
+  $('#theme').onchange = e => { store.set('audio-diary-theme', e.target.value); applyTheme(); };
+  $('#showtracks').onchange = e => { UI.showTracks = e.target.checked; store.set('audio-diary-tracks', e.target.checked ? 'on' : 'off'); toast(e.target.checked ? 'Tracks shown' : 'Tracks hidden'); };
+  $('#export').onclick = () => { $('#exportout').textContent = 'Exporting…';
+    api('exportListened').then(url => { $('#exportout').innerHTML = /^https?:/.test(url) ? `<a href="${esc(url)}" target="_blank" rel="noopener">Open the export ↗</a>` : esc(url); }); };
+}
+function applyTheme() { const t = store.get('audio-diary-theme') || 'coffee'; document.documentElement.dataset.theme = t === 'coffee' ? '' : t; }
+
+// ---------- main ----------
+function render() {
+  renderTabs();
+  const views = { home: [home, bindHome], library: [library, bindLibrary], franchise: [franchisePage, bindFranchise], series: [seriesPage, bindSeries], voices: [voices, bindVoices], add: [addView, bindAdd], dumper: [dumperView, bindDumper], settings: [settingsView, bindSettings] };
+  const [html, bind] = views[UI.view];
+  $('#app').innerHTML = html(); bind();
+}
+function reload(msg) { return api('getAll').then(d => { D = d; render(); if (msg) toast(msg); }); }
+applyTheme();
+reload().catch(e => { $('#app').innerHTML = `<div class="empty">Couldn't load: ${esc(e.message || e)}</div>`; });
+</script>
+</body>
+</html>
